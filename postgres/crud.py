@@ -1,11 +1,27 @@
 import re
+from datetime import datetime
+from datetime import timedelta
+from typing import Optional
 
-from sqlalchemy.orm import Session
-from postgres import models
-from datetime import datetime, timedelta
 from sqlalchemy import func, text
+from sqlalchemy.orm import Session
 
-pattern = r'[-=+,#/\?:^.@*\"※~ㆍ!』‘|\(\)\[\]`\'…》\”\“\’·]'
+from postgres import schemas, database, models
+
+
+def utc_convert(start_time: str, end_time: Optional[str] = None):
+    pattern = r'[-=+,#/\?:^.@*\"※~ㆍ!』‘|\(\)\[\]`\'…》\”\“\’·]'
+    start_time = re.sub(pattern, '', start_time)
+    start_time = datetime.strptime(start_time, "%Y%m%d")
+    start_time = (start_time - timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+    if end_time is not None:
+        end_time = re.sub(pattern, '', end_time)
+        end_time = datetime.strptime(end_time, "%Y%m%d")
+        end_time = (end_time - timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+
+        return start_time, end_time
+
+    return start_time
 
 
 def day_convert_scada(db: Session, table_name: str, start_time: str):
@@ -21,6 +37,7 @@ def day_convert_scada(db: Session, table_name: str, start_time: str):
 
 
 def day_convert_forecast(db: Session, table_name: str, start_time: str):
+    start_time = utc_convert(start_time)
     table = models.create_forcast(table_name)
     result = db.query(func.date_trunc('day', func.timezone('KST', func.timezone('UTC', table.record_date))) \
                       .label('ds'), func.avg(table.forecast).label(table_name)) \
@@ -46,12 +63,7 @@ def hour_convert_scada(db: Session, table_name: str, start_time: str, end_time: 
 
 
 def hour_convert_forecast(db: Session, table_name: str, start_time: str, end_time: str):
-    start_time = re.sub(pattern, '', start_time)
-    end_time = re.sub(pattern, '', end_time)
-    start_time = datetime.strptime(start_time, "%Y%m%d")
-    end_time = datetime.strptime(end_time, "%Y%m%d")
-    end_time = (end_time - timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-    start_time = (start_time - timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+    start_time, end_time = utc_convert(start_time, end_time)
     table = models.create_forcast(table_name)
     result = db.query(func.date_trunc('hour', func.timezone('KST', func.timezone('UTC', table.record_date))) \
                       .label('ds'), func.avg(table.forecast).label('forecast')) \
