@@ -44,5 +44,27 @@
           </tbody>
         </table>
       </div>
+      <br><br>
+      <h2>최대설비용량 10% 제외</h2>
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+                {% for col in tables2.columns %}
+                    <th scope="col">{{col}}</th>
+                {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+             {% for _, values in tables2.iterrows() %}
+                 <tr>
+                {% for value in values %}
+                    <td>{{ value }}</td>
+                {% endfor %}
+                 </tr>
+             {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
 {% endblock %}
